@@ -1,18 +1,12 @@
-//import * as d3 from "./d3.js";
-
 /** SETUP
- * select the element in which to plot the data visualization
- * include a title through a header element
- * include the frame of an SVG canvas, in which to draw the data as it is queried
- * define the scales for the horizontal and vertical axes
- * define the range for both axes. These rely on the width and height values of the SVG and can be set prior to retrieving the data
+  Define outer Container
+  Add title
+  Add SVG element
+  Add axes
+  Define range for axes wrt to width and height
  */
 
-
 // SELECT
-const width = 600;
-const height = 400;
-
 const container = d3.select(".container");
 
 // TITLE
@@ -21,69 +15,139 @@ container
     .attr("id", "title")
     .text("Gross Domestic Product - GDP");
 
-// Get the Data
-// XMLHTTPREQUEST
-const URL = "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json";
+// FRAME
+// get some gutter
+const margin = {
+    top: 20,
+    right: 20,
+    bottom: 20,
+    // include a larger margin to the left as to show the values of GDP on the vertical axis
+    left: 50
+}
 
-const parseTime = d3.timeParse("%Y-%m-%d");
-const formatTime = d3.timeFormat("%Y-%m-%d");
+// width and height corrected for gutter
+const width = 800 - margin.left - margin.right;
+const height = 400 - margin.top - margin.bottom;
 
+// this is the outer container 800 x 400
+const containerCanvas = container
+                            .append("svg")
+                            .attr("viewBox", `0 0 ${width + margin.left + margin.right}  ${height + margin.top + margin.bottom}`);
+
+//Define inner box for chart
+const canvasContents = containerCanvas
+                            .append("g")
+                            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+// SCALES
+// for the horizontal scale include a time scale
+// remember to use corrected width
 const xScale = d3
                 .scaleTime()
                 .range([0, width]);
 
 // for the vartical scale include a linear scale
-// since elements are drawn from the top down though, the range is reversed, with the smallest value being at the bottom of the SVG canvas and the highest value at the top
+// range is height to 0
+// corrected height
 const yScale = d3
                 .scaleLinear()
                 .range([height, 0]);
 
+// See the JSON carefully for time formats
+const parseTime = d3
+                    .timeParse("%Y-%m-%d");
+
+// define a formatting function, which formats the date object obtained
+const formatTime = d3.timeFormat("%Y-%m-%d");
+
+
+//** DATA
+// read data
+
+// XMLHTTPREQUEST
+const URL = "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json";
+
 const request = new XMLHttpRequest();
 request.open("GET", URL, true);
 request.send();
-// on load call a function to draw the bar chart
-// pass as argument the array containing 250+ data arrays
+// on load call a function to draw the bar chart wit 275 data points
 request.onload = function() {
     let json = JSON.parse(request.responseText);
     drawBarChart(json.data);
 }
 
+// main function
 function drawBarChart(data) {
 
-  // format the data
-  data.forEach((d) => {
-    d[0] = parseTime(d[0]);
-    d[1] = +d[1];
-  });
+    // FORMAT DATA and load in array
+    data.forEach((d) => {
+        d[0] = parseTime(d[0]);
+        d[1] = +d[1];
+    });
 
-  xScale
-  // d3.extent returns the minimum and maximum value
-  // this is equivalent to
-  // .domain([d3.min(data, d => d[0]), d3.max(data, d => d[0])]);
-  .domain(d3.extent(data, d => d[0]));
+    // DOMAIN
+    // the scales' domains are defined by the minimum and maximum values of each column
+        xScale
+        .domain(d3.extent(data, d => d[0]));
 
-  yScale
-  .domain(d3.extent(data, d => d[1]))
-  // thanks to the nice() function, the scale is set to start at 0 and end at 20.000
-  // applied to a domain, the function allows to avoid using the precise data points in favour of round, understandable numbers
-  .nice();
+        yScale
+        .domain(d3.extent(data, d => d[1]))
+        .nice();
 
-  const containerCanvas = container
-                          .append("svg")
-                          .attr("viewbox","0 0 1100 600");
+    // AXES
+    // initialize the axes based on the scales
+    const xAxis = d3
+                    .axisBottom(xScale);
+    const yAxis = d3
+                    .axisLeft(yScale);
 
-  containerCanvas.selectAll("rect")
-                 .data(data)
-                 .enter()
-                 .append("rect")
-                 .attr("x",(d,i) => (width/ data.length) * i)
-                 .attr("width", width/ data.length)
-                 .attr("height", (d) => height - yScale(d[1]))
-                 .attr("y", (d) => yScale(d[1]))
-                 .attr("class","bar");
+    // include the axes within group elements
+    canvasContents
+        .append("g")
+        .attr("id", "x-axis")
+        // for the horizontal axis, position it at the bottom of the area defined by the SVG canvas
+        .attr("transform", `translate(0, ${height})`)
+        .call(xAxis);
+
+    canvasContents
+        .append("g")
+        .attr("id", "y-axis")
+        .call(yAxis);
+
+    // TOOLTIP
+    // include a tooltip through a div element
+    const tooltip = container
+                        .append("div")
+                        .attr("id", "tooltip");
+
+    // PLOT CHART
+    // include as many rectangle elements as required by the data array (275 data points)
+    canvasContents
+        .selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .on("mouseenter", (d) => {
+            tooltip
+                .style("opacity", 1)
+                .style("left", `${d3.event.layerX - 150}px`)
+                .style("top", `${d3.event.layerY - 80}px`)
+                .attr("data-date", formatTime(d[0]))
+                .text(() => {
+                    let year = d[0].getFullYear();
+                    let quarter = (d[0].getMonth() == 0) ? "Q1" : (d[0].getMonth() == 3) ? "Q2" : (d[0].getMonth() == 6) ? "Q3" : "Q4";
+                    return `${year} ${quarter} ${d[1]}`;
+                });
+        })
+        .on("mouseout", () => {
+            tooltip
+                .style("opacity", 0);
+        })
+        .attr("data-date", (d) => formatTime(d[0]))
+        .attr("data-gdp", (d) => d[1])
+        .attr("x", (d, i) => (width/ data.length) * i)
+        .attr("width", (width/ data.length))
+        .attr("y", (d) => yScale(d[1]))
+        .attr("height", (d) => height - yScale(d[1]))
+        .attr("class", "bar");
 }
-
-
-
-
-// Chart Frame

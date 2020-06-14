@@ -1,25 +1,99 @@
 @import url("https://fonts.googleapis.com/css?family=Lato");
-svg, body {
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
   min-height: 100vh;
   width: 100%;
   font-family: 'Lato', sans-serif;
   color: #eee;
-  background: #fff;
+  background: #252525;
 }
 
 .container {
   /* set the size of the container
   as the SVG defines only the viewbox attribute, the width spreads to fit the container's width
   the height is also defined by the viewbox itself, to preserve the width to height ratio */
-  width: 85vh;
+  width: 85vw;
   padding: 1rem;
+  margin: 2rem auto;
+  color: #252525;
+  background: #eee;
+  box-shadow: 6px 8px 0 #252525, 14px 14px 0 #eee;
+}
+.container h1#title {
+  font-size: 2.5rem;
+  text-transform: capitalize;
+  text-align: center;
+  margin: 1rem;
+}
+.container h1#title::selection {
   color: #eee;
-  background: #f5f5f5;
-  display: block; /* No inline-block */
-  margin-left: auto;
-  margin-right: auto;
+  background: #252525;
+}
+/* change the font for the ticks of the axes */
+.container svg text {
+  font-family: 'Lato', sans-serif;
+  font-weight: bold;
+}
+/* change the opacity of the fill on hover */
+.container svg .bar {
+  fill: rgba(37, 37, 37, 0.7);
+}
+.container svg .bar:hover {
+  fill: rgba(37, 37, 37, 1);
+}
+.container div#tooltip {
+  /* absolute position the div used as tooltip, to change the left and bottom properties as the cursor hovers on the SVG rectangles */
+  position: absolute;
+  border-radius: 4px;
+  color: #eee;
+  background: #252525;
+  padding: 1rem 2rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  /* pointer events to avoid hovering on the tooltip and preventing the hover state on the rectangle elements behind it */
+  pointer-events: none;
+  /* set opacity to 0 and change it to 1 on hover on the rectangle elements */
+  opacity: 0;
+}
+/* define the animations to introduce the card and the title element */
+@keyframes introduceCard {
+  0% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes introduceTitle {
+  0% {
+    transform: translateY(-20vh);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.bar {
-  color: #000;
+
+/* on smaller screen sizes, reduce the font-size of the header and of the tooltip */
+@media (max-width: 700px) {
+  .container h1#title {
+    font-size: 1.8rem;
+  }
+  .container div#tooltip {
+    font-size: 1rem;
+  }
 }
